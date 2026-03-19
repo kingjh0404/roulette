@@ -89,7 +89,6 @@
     /* ── 룰렛 ── */
     .wheel-wrap {
       position: relative;
-      width: 500px; height: 500px;
       flex-shrink: 0;
     }
     #wheel {
@@ -250,6 +249,19 @@
       pointer-events: none;
       z-index: 199;
     }
+
+    /* ── 반응형 ── */
+    @media (max-width: 600px) {
+      body { padding: 20px 12px 36px; }
+      h1 { font-size: 1.6rem; letter-spacing: 2px; margin-bottom: 10px; }
+      .theme-bar { margin-bottom: 20px; gap: 8px; }
+      .tb { width: 28px; height: 28px; }
+      .container { gap: 24px; }
+      .panel { min-width: unset; max-width: 100%; width: 100%; }
+      .item-list { max-height: 260px; }
+      .spin-btn { padding: 13px 44px; font-size: 1rem; }
+      .modal { padding: 36px 28px; }
+    }
   </style>
 </head>
 <body>
@@ -312,7 +324,24 @@ let winIdx = -1, hlPhase = 0, hlRef = null;
 
 const wheel = document.getElementById('wheel');
 const ctx   = wheel.getContext('2d');
-const cx = wheel.width / 2, cy = wheel.height / 2, R = cx - 4;
+let cx, cy, R;
+
+function resizeWheel() {
+  const size = Math.min(window.innerWidth - 64, 500);
+  wheel.width  = size;
+  wheel.height = size;
+  wheel.parentElement.style.width  = size + 'px';
+  wheel.parentElement.style.height = size + 'px';
+  // 화살표 크기도 비율에 맞게
+  const arrowSize = Math.round(size * 0.044);
+  const arrow = wheel.parentElement.querySelector('.arrow');
+  arrow.style.borderTop    = `${arrowSize}px solid transparent`;
+  arrow.style.borderBottom = `${arrowSize}px solid transparent`;
+  arrow.style.borderRight  = `${arrowSize*2}px solid var(--accent)`;
+  arrow.style.right        = `-${arrowSize*2 + 2}px`;
+  cx = size / 2; cy = size / 2; R = cx - 4;
+  drawWheel();
+}
 
 // ── 오디오 ──
 let ac = null;
@@ -524,7 +553,9 @@ function stopConfetti(){
 }
 
 // ── init ──
-renderList(); drawWheel();
+window.addEventListener('resize', resizeWheel);
+resizeWheel();
+renderList();
 </script>
 </body>
 </html>
