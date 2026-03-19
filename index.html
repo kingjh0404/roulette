@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>룰렛</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── 테마 변수 ── */
+    body {
+      --bg: #1a1a2e; --surface: rgba(255,255,255,0.05);
+      --accent: #e2b96f; --accent2: #c9922a;
+      --text: #eee; --muted: #888; --border: #333;
+      --input-bg: #111827; --shadow: rgba(226,185,111,0.45);
+    }
+    body.neon {
+      --bg: #080810; --surface: rgba(255,255,255,0.04);
+      --accent: #00ffcc; --accent2: #00cc99;
+      --text: #fff; --muted: #666; --border: #222;
+      --input-bg: #0d0d18; --shadow: rgba(0,255,204,0.5);
+    }
+    body.pastel {
+      --bg: #fdf6ff; --surface: rgba(0,0,0,0.04);
+      --accent: #b388ff; --accent2: #9c6fff;
+      --text: #333; --muted: #999; --border: #e0d0ff;
+      --input-bg: #fff; --shadow: rgba(179,136,255,0.4);
+    }
+    body.ocean {
+      --bg: #0d1b2a; --surface: rgba(255,255,255,0.05);
+      --accent: #4fc3f7; --accent2: #0288d1;
+      --text: #e0f7fa; --muted: #7ab; --border: #1a3a50;
+      --input-bg: #0d2233; --shadow: rgba(79,195,247,0.45);
+    }
+    body.sunset {
+      --bg: #1a0525; --surface: rgba(255,255,255,0.05);
+      --accent: #ff6b9d; --accent2: #ff3d77;
+      --text: #ffe0f0; --muted: #b07; --border: #3a1040;
+      --input-bg: #250a35; --shadow: rgba(255,107,157,0.5);
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 28px 16px 40px;
+      transition: background .35s, color .35s;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      color: var(--accent);
+      letter-spacing: 3px;
+      margin-bottom: 14px;
+      text-shadow: 0 0 20px var(--shadow);
+    }
+
+    /* ── 테마 버튼 ── */
+    .theme-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .tb {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      border: 3px solid transparent;
+      cursor: pointer;
+      transition: transform .2s, border-color .2s;
+    }
+    .tb:hover { transform: scale(1.2); }
+    .tb.on { border-color: var(--text); transform: scale(1.2); }
+
+    /* ── 레이아웃 ── */
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 40px;
+      justify-content: center;
+      align-items: flex-start;
+      width: 100%;
+      max-width: 1060px;
+    }
+
+    /* ── 룰렛 ── */
+    .wheel-wrap {
+      position: relative;
+      width: 500px; height: 500px;
+      flex-shrink: 0;
+    }
+    #wheel {
+      border-radius: 50%;
+      box-shadow: 0 0 50px var(--shadow), 0 0 100px rgba(0,0,0,.3);
+      display: block;
+      transition: box-shadow .35s;
+    }
+    .arrow {
+      position: absolute;
+      top: 50%; right: -28px;
+      transform: translateY(-50%);
+      width: 0; height: 0;
+      border-top: 22px solid transparent;
+      border-bottom: 22px solid transparent;
+      border-right: 44px solid var(--accent);
+      filter: drop-shadow(0 0 8px var(--accent));
+      transition: border-right-color .35s, filter .35s;
+    }
+
+    .spin-btn {
+      display: block;
+      margin: 22px auto 0;
+      padding: 16px 60px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: var(--bg);
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 22px var(--shadow);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .spin-btn:hover:not(:disabled) { transform: scale(1.06); box-shadow: 0 6px 30px var(--shadow); }
+    .spin-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+    /* ── 패널 ── */
+    .panel {
+      flex: 1;
+      min-width: 260px; max-width: 360px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 26px;
+      transition: background .35s, border-color .35s;
+    }
+    .panel h2 {
+      font-size: .85rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 16px;
+    }
+    .add-row { display: flex; gap: 8px; margin-bottom: 14px; }
+    .add-row input {
+      flex: 1;
+      padding: 11px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--input-bg);
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .add-row input:focus { border-color: var(--accent); }
+    .add-row button {
+      padding: 11px 18px;
+      border-radius: 10px;
+      border: none;
+      background: var(--accent);
+      color: var(--bg);
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background .2s, transform .1s;
+    }
+    .add-row button:hover { background: var(--accent2); transform: scale(1.06); }
+
+    .item-list {
+      list-style: none;
+      display: flex; flex-direction: column; gap: 8px;
+      max-height: 400px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .item-list::-webkit-scrollbar { width: 4px; }
+    .item-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .item-list li {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid transparent;
+      border-radius: 10px;
+      padding: 10px 14px;
+      animation: fadeIn .2s ease;
+      transition: border-color .2s;
+    }
+    .item-list li:hover { border-color: var(--border); }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; } }
+    .dot { width:13px; height:13px; border-radius:50%; flex-shrink:0; }
+    .itxt { flex:1; font-size:.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .del {
+      background:none; border:none; color:var(--muted);
+      font-size:1rem; cursor:pointer; padding:2px 6px;
+      border-radius:4px; transition:color .2s, background .2s; flex-shrink:0;
+    }
+    .del:hover { color:#ff6b6b; background:rgba(255,107,107,.12); }
+    .empty-msg { color:var(--muted); font-size:.9rem; text-align:center; padding:24px 0; }
+
+    /* ── 결과 모달 ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.75);
+      backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200;
+      opacity: 0; pointer-events: none;
+      transition: opacity .3s;
+    }
+    .overlay.show { opacity:1; pointer-events:all; }
+    .modal {
+      background: var(--bg);
+      border: 2px solid var(--accent);
+      border-radius: 28px;
+      padding: 52px 72px;
+      text-align: center;
+      transform: scale(.6);
+      transition: transform .45s cubic-bezier(.34,1.56,.64,1);
+      box-shadow: 0 0 80px var(--shadow), 0 24px 80px rgba(0,0,0,.5);
+      max-width: 90vw;
+    }
+    .overlay.show .modal { transform: scale(1); }
+    .modal-label { font-size:.9rem; color:var(--muted); text-transform:uppercase; letter-spacing:3px; margin-bottom:18px; }
+    .modal-name {
+      font-size: clamp(2.4rem, 8vw, 4.5rem);
+      font-weight: 900;
+      color: var(--accent);
+      margin-bottom: 36px;
+      line-height: 1.1;
+      text-shadow: 0 0 40px var(--shadow);
+    }
+    .modal-close {
+      padding: 15px 48px;
+      border-radius: 50px; border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: var(--bg);
+      font-size: 1.05rem; font-weight: bold;
+      cursor: pointer;
+      transition: transform .15s;
+    }
+    .modal-close:hover { transform: scale(1.06); }
+
+    /* ── Confetti ── */
+    #conf {
+      position: fixed; inset: 0;
+      pointer-events: none;
+      z-index: 199;
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="conf"></canvas>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-label">🎉 당첨!</div>
+    <div class="modal-name" id="modalName"></div>
+    <button class="modal-close" onclick="closeModal()">확인</button>
+  </div>
+</div>
+
+<h1>🎡 룰렛</h1>
+
+<div class="theme-bar">
+  <button class="tb on" style="background:linear-gradient(135deg,#e2b96f,#1a1a2e)" title="클래식" onclick="setTheme(this,'')"></button>
+  <button class="tb" style="background:linear-gradient(135deg,#00ffcc,#080810)" title="네온" onclick="setTheme(this,'neon')"></button>
+  <button class="tb" style="background:linear-gradient(135deg,#b388ff,#fdf6ff)" title="파스텔" onclick="setTheme(this,'pastel')"></button>
+  <button class="tb" style="background:linear-gradient(135deg,#4fc3f7,#0d1b2a)" title="오션" onclick="setTheme(this,'ocean')"></button>
+  <button class="tb" style="background:linear-gradient(135deg,#ff6b9d,#1a0525)" title="선셋" onclick="setTheme(this,'sunset')"></button>
+</div>
+
+<div class="container">
+  <div style="display:flex;flex-direction:column;align-items:center">
+    <div class="wheel-wrap">
+      <canvas id="wheel" width="500" height="500"></canvas>
+      <div class="arrow"></div>
+    </div>
+    <button class="spin-btn" id="spinBtn" onclick="spin()">돌리기</button>
+  </div>
+
+  <div class="panel">
+    <h2>항목 관리</h2>
+    <div class="add-row">
+      <input id="inp" type="text" placeholder="항목 입력 후 Enter" maxlength="20"
+             onkeydown="if(event.key==='Enter'&&!event.isComposing)addItem()"/>
+      <button onclick="addItem()">+</button>
+    </div>
+    <ul class="item-list" id="list"></ul>
+    <p class="empty-msg" id="empty">항목을 추가해 주세요</p>
+  </div>
+</div>
+
+<script>
+// ── 팔레트 ──
+const PALETTES = {
+  '':       ['#e74c3c','#e67e22','#f1c40f','#2ecc71','#1abc9c','#3498db','#9b59b6','#e91e63','#ff5722','#00bcd4','#8bc34a','#ff9800'],
+  neon:     ['#ff00ff','#00ffcc','#ffff00','#00eeff','#ff4400','#44ff00','#ff0088','#00aaff','#ff6600','#cc00ff','#00ff88','#ffcc00'],
+  pastel:   ['#ffb3ba','#ffd9a0','#ffffb3','#b3ffce','#b3d9ff','#d9b3ff','#ffb3d9','#c2ffb3','#ffc2a0','#b3ffe8','#e0b3ff','#ffc2b3'],
+  ocean:    ['#006994','#0099cc','#00ccdd','#33bbee','#0077aa','#00aacc','#0055aa','#2288cc','#00bbdd','#1166bb','#44aacc','#0088bb'],
+  sunset:   ['#ff6b9d','#ff8c42','#ffd166','#ff4d6d','#ff9a3c','#ff6b35','#e63946','#ff7b54','#ff5a87','#ff9f1c','#ff6040','#ff4a6e'],
+};
+
+let items = ['피자', '치킨', '짜장면', '초밥'];
+let angle = 0, spinning = false;
+let theme = '';
+let winIdx = -1, hlPhase = 0, hlRef = null;
+
+const wheel = document.getElementById('wheel');
+const ctx   = wheel.getContext('2d');
+const cx = wheel.width / 2, cy = wheel.height / 2, R = cx - 4;
+
+// ── 오디오 ──
+let ac = null;
+const getAC = () => { if (!ac) ac = new (window.AudioContext||window.webkitAudioContext)(); return ac; };
+
+function playTick() {
+  const a = getAC();
+  const o = a.createOscillator(), g = a.createGain();
+  o.connect(g); g.connect(a.destination);
+  o.frequency.value = 700;
+  g.gain.setValueAtTime(.12, a.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001, a.currentTime + .05);
+  o.start(); o.stop(a.currentTime + .05);
+}
+
+function playWin() {
+  const a = getAC();
+  [523, 659, 784, 1047, 1319].forEach((f, i) => {
+    const o = a.createOscillator(), g = a.createGain();
+    o.connect(g); g.connect(a.destination);
+    o.frequency.value = f; o.type = 'sine';
+    const t = a.currentTime + i * .11;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(.18, t + .04);
+    g.gain.exponentialRampToValueAtTime(.001, t + .32);
+    o.start(t); o.stop(t + .35);
+  });
+}
+
+// ── 테마 ──
+function setTheme(btn, name) {
+  document.querySelectorAll('.tb').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  document.body.className = name;
+  theme = name;
+  renderList();
+  drawWheel();
+}
+const pal = () => PALETTES[theme] || PALETTES[''];
+
+// ── CSS var helper ──
+const cssVar = v => getComputedStyle(document.body).getPropertyValue(v).trim();
+
+// ── 그리기 ──
+function drawWheel() {
+  ctx.clearRect(0, 0, wheel.width, wheel.height);
+  const n = items.length, C = pal();
+
+  if (!n) {
+    ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.fillStyle='#2a2a3e'; ctx.fill();
+    ctx.fillStyle='#666'; ctx.font='16px sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('항목을 추가해 주세요', cx, cy);
+    return;
+  }
+
+  const arc = (Math.PI*2)/n;
+
+  for (let i=0; i<n; i++) {
+    const s = angle + arc*i, e = s + arc;
+    const isWin = i===winIdx && hlPhase>0;
+
+    ctx.save();
+    if (isWin) { ctx.shadowColor = C[i%C.length]; ctx.shadowBlur = 35*hlPhase; }
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R,s,e); ctx.closePath();
+    ctx.fillStyle = C[i%C.length]; ctx.fill();
+    ctx.strokeStyle='rgba(0,0,0,.2)'; ctx.lineWidth=2; ctx.stroke();
+    ctx.restore();
+
+    // 텍스트
+    ctx.save();
+    ctx.translate(cx,cy); ctx.rotate(s + arc/2);
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle='#fff';
+    ctx.font=`bold ${n>10?12:n>6?14:16}px sans-serif`;
+    ctx.shadowColor='rgba(0,0,0,.7)'; ctx.shadowBlur=4;
+    ctx.fillText(items[i], R*0.58, 0);
+    ctx.restore();
+  }
+
+  // 중앙 원
+  ctx.beginPath(); ctx.arc(cx,cy,20,0,Math.PI*2);
+  ctx.fillStyle=cssVar('--bg')||'#1a1a2e'; ctx.fill();
+  ctx.strokeStyle=cssVar('--accent')||'#e2b96f'; ctx.lineWidth=3; ctx.stroke();
+}
+
+// ── 항목 추가 / 삭제 ──
+function addItem() {
+  const inp = document.getElementById('inp');
+  const v = inp.value.trim(); if (!v) return;
+  items.push(v); inp.value='';
+  winIdx=-1; renderList(); drawWheel();
+}
+function removeItem(i) {
+  items.splice(i,1); winIdx=-1; renderList(); drawWheel();
+}
+function renderList() {
+  const ul=document.getElementById('list'), em=document.getElementById('empty'), C=pal();
+  ul.innerHTML=''; em.style.display=items.length?'none':'block';
+  items.forEach((it,i) => {
+    const li=document.createElement('li');
+    li.innerHTML=`<span class="dot" style="background:${C[i%C.length]}"></span>
+      <span class="itxt">${it}</span>
+      <button class="del" onclick="removeItem(${i})">✕</button>`;
+    ul.appendChild(li);
+  });
+}
+
+// ── 스핀 ──
+let lastTick = 0;
+function spin() {
+  if (spinning || !items.length) return;
+  spinning=true; winIdx=-1; hlPhase=0;
+  if (hlRef) cancelAnimationFrame(hlRef);
+  document.getElementById('spinBtn').disabled=true;
+
+  const n=items.length, arc=(Math.PI*2)/n;
+  const ti=Math.floor(Math.random()*n);
+  const extra=(Math.PI*2)*(6+Math.random()*6);
+  const target=-(arc*ti+arc/2);
+  const total=extra+target-(angle%(Math.PI*2));
+  const end=angle+total;
+  const dur=4800, t0=performance.now(), a0=angle;
+  lastTick=angle;
+
+  const ease=t=>1-Math.pow(1-t,4);
+
+  (function frame(now){
+    const el=now-t0, t=Math.min(el/dur,1);
+    angle=a0+total*ease(t);
+
+    const passed=Math.floor(Math.abs(angle-lastTick)/arc);
+    if (passed>0) { playTick(); lastTick=angle; }
+
+    drawWheel();
+    if (t<1) { requestAnimationFrame(frame); return; }
+
+    angle=end; spinning=false;
+    winIdx=ti;
+    document.getElementById('spinBtn').disabled=false;
+    playWin();
+    pulseWinner(0);
+  })(t0);
+}
+
+// ── 당첨 슬라이스 펄스 ──
+function pulseWinner(step) {
+  hlPhase=0.5+0.5*Math.sin(step*0.18);
+  drawWheel();
+  if (step<35) { hlRef=requestAnimationFrame(()=>pulseWinner(step+1)); }
+  else { hlPhase=1; drawWheel(); showModal(items[winIdx]); }
+}
+
+// ── 모달 ──
+function showModal(name) {
+  document.getElementById('modalName').textContent=name;
+  document.getElementById('overlay').classList.add('show');
+  launchConfetti();
+}
+function closeModal() {
+  document.getElementById('overlay').classList.remove('show');
+  stopConfetti();
+}
+
+// ── Confetti ──
+const cc=document.getElementById('conf'), cctx=cc.getContext('2d');
+let parts=[], confRef=null, confOn=false;
+
+function resizeConf(){ cc.width=innerWidth; cc.height=innerHeight; }
+resizeConf(); window.addEventListener('resize',resizeConf);
+
+function launchConfetti() {
+  confOn=true; parts=[];
+  const C=pal();
+  for (let i=0;i<180;i++) parts.push({
+    x:Math.random()*cc.width,
+    y:-20-Math.random()*200,
+    w:7+Math.random()*9, h:4+Math.random()*6,
+    color:C[Math.floor(Math.random()*C.length)],
+    vx:(Math.random()-.5)*4,
+    vy:3+Math.random()*4,
+    rot:Math.random()*Math.PI*2,
+    rv:(Math.random()-.5)*.18,
+    life:1,
+  });
+  animConf();
+}
+function animConf(){
+  cctx.clearRect(0,0,cc.width,cc.height);
+  parts.forEach(p=>{
+    p.x+=p.vx; p.y+=p.vy; p.rot+=p.rv;
+    if (p.y>cc.height*.75) p.life-=.025;
+    cctx.save();
+    cctx.translate(p.x,p.y); cctx.rotate(p.rot);
+    cctx.globalAlpha=Math.max(0,p.life);
+    cctx.fillStyle=p.color;
+    cctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+    cctx.restore();
+  });
+  parts=parts.filter(p=>p.life>0);
+  if (confOn && parts.length) confRef=requestAnimationFrame(animConf);
+  else cctx.clearRect(0,0,cc.width,cc.height);
+}
+function stopConfetti(){
+  confOn=false; parts=[];
+  if (confRef) cancelAnimationFrame(confRef);
+  cctx.clearRect(0,0,cc.width,cc.height);
+}
+
+// ── init ──
+renderList(); drawWheel();
+</script>
+</body>
+</html>
