@@ -327,7 +327,10 @@ const ctx   = wheel.getContext('2d');
 let cx, cy, R;
 
 function resizeWheel() {
-  const size = Math.min(window.innerWidth - 64, 500);
+  const mobile = window.innerWidth <= 768;
+  const size = mobile
+    ? Math.min(window.innerWidth - 48, 320)
+    : Math.min(window.innerWidth - 64, 500);
   wheel.width  = size;
   wheel.height = size;
   wheel.parentElement.style.width  = size + 'px';
